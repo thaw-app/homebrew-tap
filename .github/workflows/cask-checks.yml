@@ -29,13 +29,15 @@ jobs:
       - name: Audit
         env:
           HOMEBREW_NO_INSTALL_FROM_API: "1"
-        run: brew audit --cask --strict --online thaw-app/tap/thaw@2
+        run: brew audit --cask --strict --online thaw-app/tap/thaw@2 thaw-app/tap/thaw@2-beta
 
       - name: Livecheck
-        run: brew livecheck --cask thaw-app/tap/thaw@2
+        run: brew livecheck --cask thaw-app/tap/thaw@2 thaw-app/tap/thaw@2-beta
 
       - name: Bump script dry run
         env:
           GH_TOKEN: ${{ github.token }}
           DRY_RUN: "1"
-        run: scripts/bump-thaw-2.sh
+        run: |
+          scripts/bump-cask.sh thaw@2
+          scripts/bump-cask.sh thaw@2-beta

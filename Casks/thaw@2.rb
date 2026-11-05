@@ -16,6 +16,7 @@ cask "thaw@2" do
   auto_updates true
   conflicts_with cask: [
     "thaw",
+    "thaw-app/tap/thaw@2-beta",
     "thaw@beta",
   ]
   depends_on macos: :tahoe
