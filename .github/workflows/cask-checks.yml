@@ -1,0 +1,41 @@
+name: Cask checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Tap this checkout
+        run: |
+          taps="$(brew --repository)/Library/Taps/thaw-app"
+          mkdir -p "$taps"
+          ln -s "$GITHUB_WORKSPACE" "$taps/homebrew-tap"
+          brew trust --tap thaw-app/tap
+
+      - name: Style
+        run: brew style thaw-app/tap
+
+      - name: Audit
+        env:
+          HOMEBREW_NO_INSTALL_FROM_API: "1"
+        run: brew audit --cask --strict --online thaw-app/tap/thaw@2
+
+      - name: Livecheck
+        run: brew livecheck --cask thaw-app/tap/thaw@2
+
+      - name: Bump script dry run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DRY_RUN: "1"
+        run: scripts/bump-thaw-2.sh

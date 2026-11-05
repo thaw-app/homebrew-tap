@@ -1,0 +1,33 @@
+name: Bump thaw@2
+
+on:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+  repository_dispatch:
+    types: [thaw-2-release]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: bump-thaw-2
+  cancel-in-progress: false
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set the commit identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Open a bump pull request when a new 2.x release is out
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/bump-thaw-2.sh
