@@ -1,0 +1,38 @@
+name: Bump Thaw 2 casks
+
+on:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+  repository_dispatch:
+    types: [thaw-2-release]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: bump-thaw-2
+  cancel-in-progress: false
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        cask: [thaw@2, thaw@2-beta]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set the commit identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Open a bump pull request when ${{ matrix.cask }} has a newer release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/bump-cask.sh "${{ matrix.cask }}"
