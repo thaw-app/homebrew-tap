@@ -21,6 +21,8 @@ brew install --cask thaw-app/tap/thaw@2
 
 For the beta channel, use `thaw@2-beta` in the last two lines. Homebrew 7 loads casks from a tap only after you trust them, which is what the second line does.
 
+Neither cask has a maximum macOS. On macOS 27, Thaw 2 opens with a warning that offers Thaw 3 through its beta updates, but `brew install thaw@beta` is the direct route there.
+
 All Thaw casks install the same `Thaw.app`, so `thaw@2`, `thaw@2-beta`, `thaw` and `thaw@beta` can't be installed side by side. Thaw updates itself once installed, so Homebrew leaves upgrades to it.
 
 ## How the casks stay current

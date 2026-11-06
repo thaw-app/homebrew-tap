@@ -19,6 +19,7 @@ cask "thaw@2-beta" do
     "thaw-app/tap/thaw@2",
     "thaw@beta",
   ]
+  # No maximum: on macOS 27, Thaw 2 opens with a warning that offers Thaw 3 through beta updates.
   depends_on macos: :sequoia
 
   app "Thaw.app"

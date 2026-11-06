@@ -71,7 +71,7 @@ then
   exit 1
 fi
 
-tags=$(gh release list --repo "${repo}" --exclude-drafts --limit 200 --json tagName --jq '.[].tagName')
+tags=$(gh release list --repo "${repo}" --exclude-drafts --limit 1000 --json tagName --jq '.[].tagName')
 matching=$(grep -E "${pattern}" <<<"${tags}" || true)
 latest=$(highest_version <<<"${matching}")
 if [[ -z "${latest}" ]]
@@ -87,13 +87,16 @@ then
   exit 0
 fi
 
-branch="bump/${token/@/-}-${latest}"
-open_pr=$(gh pr list --head "${branch}" --state open --json number --jq '.[].number')
-if [[ -n "${open_pr}" ]]
+prefix="bump/${token/@/-}-"
+branch="${prefix}${latest}"
+open_branches=$(gh pr list --state open --limit 100 --json headRefName --jq ".[].headRefName | select(startswith(\"${prefix}\"))")
+if grep -qxF "${branch}" <<<"${open_branches}"
 then
   echo "A pull request for ${token} ${latest} is already open"
   exit 0
 fi
+# An older bump for this cask is superseded once the newer one opens.
+superseded=$(grep -vxF "${branch}" <<<"${open_branches}" || true)
 
 asset="Thaw_${latest}.zip"
 url="https://github.com/${repo}/releases/download/${latest}/${asset}"
@@ -119,15 +122,20 @@ fi
 echo "Bumping ${token} from ${current} to ${latest} (sha256 ${sha}, macOS ${minimum} :${macos})"
 if [[ "${DRY_RUN:-0}" == "1" ]]
 then
+  if [[ -n "${superseded}" ]]
+  then
+    echo "Would close superseded bump pull requests: ${superseded//$'\n'/ }"
+  fi
   exit 0
 fi
 
 perl -pi -e "s/^(\s*version )\"[^\"]+\"/\$1\"${latest}\"/; s/^(\s*sha256 )\"[^\"]+\"/\$1\"${sha}\"/; s/^(\s*depends_on macos: ):\w+/\$1:${macos}/" "${cask}"
 
-git switch --create "${branch}"
+# -C and --force-with-lease let a run that stopped after pushing start over in the same clone.
+git switch -C "${branch}"
 git add "${cask}"
 git commit --signoff --message "${token} ${latest}"
-git push --set-upstream origin "${branch}"
+git push --force-with-lease --set-upstream origin "${branch}"
 
 body="Moves \`${token}\` from ${current} to [${latest}](https://github.com/${repo}/releases/tag/${latest}).
 
@@ -136,4 +144,10 @@ body="Moves \`${token}\` from ${current} to [${latest}](https://github.com/${rep
 
 Opened by the bump workflow. Pull requests opened with the workflow token don't start other workflows, so run Cask checks from its Actions page before merging."
 
-gh pr create --base main --head "${branch}" --title "${token} ${latest}" --body "${body}"
+url_new=$(gh pr create --base main --head "${branch}" --title "${token} ${latest}" --body "${body}")
+echo "${url_new}"
+while read -r old
+do
+  [[ -z "${old}" ]] && continue
+  gh pr close "${old}" --delete-branch --comment "Superseded by ${url_new}."
+done <<<"${superseded}"
